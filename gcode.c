@@ -71,7 +71,7 @@ uint8_t gc_execute_line(char *line)
      executed after successful error-checking. The parser block struct also contains a block
      values struct, word tracking variables, and a non-modal commands tracker for the new
      block. This struct contains all of the necessary information to execute the block. */
-
+  bool t_encountered = false;
   memset(&gc_block, 0, sizeof(parser_block_t)); // Initialize the parser block struct.
   memcpy(&gc_block.modal,&gc_state.modal,sizeof(gc_modal_t)); // Copy current modes
 
@@ -311,9 +311,11 @@ uint8_t gc_execute_line(char *line)
           // case 'Q': // Not supported
           case 'R': word_bit = WORD_R; gc_block.values.r = value; break;
           case 'S': word_bit = WORD_S; gc_block.values.s = value; break;
-          case 'T': word_bit = WORD_T; 
+          case 'T': 
+            word_bit = WORD_T; 
 					  if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
             gc_block.values.t = int_value;
+            t_encountered = true;
 						break;
           case 'X': word_bit = WORD_X; gc_block.values.xyz[X_AXIS] = value; axis_words |= (1<<X_AXIS); break;
           case 'Y': word_bit = WORD_Y; gc_block.values.xyz[Y_AXIS] = value; axis_words |= (1<<Y_AXIS); break;
@@ -925,7 +927,11 @@ uint8_t gc_execute_line(char *line)
   } // else { pl_data->spindle_speed = 0.0; } // Initialized as zero already.
   
   // [5. Select tool ]: NOT SUPPORTED. Only tracks tool value.
-  gc_state.tool = gc_block.values.t;
+  // gc_state.tool = gc_block.values.t;
+  // Only update gc_state.tool if T was encountered on this line.
+  if (t_encountered) {
+    gc_state.tool = gc_block.values.t;
+  }
 
   // [6. Change tool ]: NOT SUPPORTED
 
